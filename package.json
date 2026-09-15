@@ -11,6 +11,7 @@
     "lint": "standard",
     "vanillaServer": "minecraft-bedrock-server --root tools --version",
     "dumpPackets": "node tools/genPacketDumps.js",
+    "bot-manager": "node bot-manager/server.js",
     "fix": "standard --fix"
   },
   "keywords": [
@@ -30,16 +31,15 @@
     "prismarine-nbt": "^2.0.0",
     "prismarine-realms": "^1.6.0",
     "protodef": "^1.14.0",
-    "raknet-native": "^1.0.3",
     "uuid-1345": "^1.0.2"
   },
   "optionalDependencies": {
+    "raknet-native": "^1.0.3",
     "raknet-node": "^0.5.0"
   },
   "devDependencies": {
     "bedrock-protocol": "file:.",
     "bedrock-provider": "^2.0.0",
-    "leveldb-zlib": "^1.0.1",
     "minecraft-bedrock-server": "^1.7.0",
     "mocha": "^11.0.1",
     "protodef-yaml": "^1.1.0",
