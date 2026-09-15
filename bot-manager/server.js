@@ -36,7 +36,7 @@ function loadConfig () {
     return normalizeConfig(JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')))
   } catch (error) {
     if (error.code !== 'ENOENT') console.warn('Could not read bot manager config:', error.message)
-    return structuredClone(defaultConfig)
+    return JSON.parse(JSON.stringify(defaultConfig))
   }
 }
 
