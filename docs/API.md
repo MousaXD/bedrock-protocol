@@ -20,7 +20,7 @@ Returns a `Client` instance and connects to the server.
 | followPort | *optional* | Update the options' port parameter to match the port broadcast on the server's ping data (default to true if `realms` not specified) |
 | autoInitPlayer | *optional* |  default to true, If we should send SetPlayerInitialized to the server after getting play_status spawn.    |
 | conLog | *optional* | Where to log connection information (server join, kick messages to). Defaults to console.log, set to `null` to not log anywhere. |
-| raknetBackend | *optional* | Specifies the raknet implementation to use. Possible options are 'raknet-native' (default, original C++ implementation), 'jsp-raknet' (JS port), and 'raknet-node' (Rust port). Please note when using the non-JS implementation you may the need approporate build tools on your system (for example a C++ or Rust compiler). |
+| raknetBackend | *optional* | Specifies the RakNet implementation to use. Possible options are 'auto' (default: prefer raknet-native when available, otherwise fall back to jsp-raknet), 'raknet-native' (C++), 'jsp-raknet' (JS), and 'raknet-node' (Rust). Explicit non-JS backends may require platform build tools when no prebuilt binary is available. |
 | compressionLevel | *optional* | What zlib compression level to use, default to **7** |
 | batchingInterval | *optional* | How frequently, in milliseconds to flush and write the packet queue (default: 20ms) |
 | realms | *optional* | An object which should contain one of the following properties: `realmId`, `realmInvite`, `pickRealm`. When defined will attempt to join a Realm without needing to specify host/port. **The authenticated account must either own the Realm or have been invited to it** |
