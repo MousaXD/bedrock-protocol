@@ -24,7 +24,7 @@ function setBackend (backend) {
 function selectAutomaticBackend () {
   try {
     return setBackend('raknet-native')
-  } catch (error) {
+  } catch {
     return setBackend('jsp-raknet')
   }
 }
