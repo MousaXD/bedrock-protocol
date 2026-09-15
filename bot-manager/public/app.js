@@ -1,3 +1,4 @@
+/* global document, fetch, confirm, structuredClone, setInterval, clearTimeout */
 let currentState = null
 let initializedInputs = false
 
