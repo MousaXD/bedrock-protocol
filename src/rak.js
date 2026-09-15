@@ -6,7 +6,6 @@ let Client, Server, PacketPriority, EncapsulatedPacket, PacketReliability, Relia
 class RakTimeout extends Error {};
 
 function setBackend (backend) {
-  // We have to explicitly require the backend for bundlers
   switch (backend) {
     case 'raknet-node':
       ({ Client, Server, PacketPriority, PacketReliability } = require('raknet-node'))
@@ -17,20 +16,21 @@ function setBackend (backend) {
     case 'jsp-raknet':
       ({ Client, Server, EncapsulatedPacket, Reliability } = require('jsp-raknet'))
       return { RakServer: RakJsServer, RakClient: RakJsClient, RakTimeout }
+    default:
+      throw new Error(`Unknown RakNet backend: ${backend}`)
   }
 }
 
-module.exports = (backend) => {
-  if (backend) {
-    return setBackend(backend)
-  } else {
-    try {
-      return setBackend('raknet-native')
-    } catch (e) {
-      console.debug(`[raknet] ${backend} library not found, defaulting to jsp-raknet. Correct the "raknetBackend" option to avoid this error.`, e)
-      return setBackend('jsp-raknet')
-    }
+function selectAutomaticBackend () {
+  try {
+    return setBackend('raknet-native')
+  } catch (error) {
+    return setBackend('jsp-raknet')
   }
+}
+
+module.exports = (backend = 'auto') => {
+  return backend === 'auto' ? selectAutomaticBackend() : setBackend(backend)
 }
 
 class RakNativeClient extends EventEmitter {
@@ -44,7 +44,7 @@ class RakNativeClient extends EventEmitter {
     const protocolVersion = client?.versionGreaterThanOrEqualTo('1.19.30') ? 11 : 10
     this.raknet = new Client(options.host, options.port, { protocolVersion })
     this.raknet.on('encapsulated', ({ buffer, address }) => {
-      if (this.connected) { // Discard packets that are queued to be sent to us after close
+      if (this.connected) {
         this.onEncapsulated(buffer, address)
       }
     })
@@ -70,7 +70,7 @@ class RakNativeClient extends EventEmitter {
       })
     }, timeout, () => {
       if ('REPLIT_ENVIRONMENT' in process.env) {
-        console.warn('A Replit environment was detected. Replit may not support the necessary outbound UDP connections required to connect to a Minecraft server. Please see https://github.com/PrismarineJS/bedrock-protocol/blob/master/docs/FAQ.md for more information.')
+        console.warn('A Replit environment was detected. Replit may not support the necessary outbound UDP connections required to connect to a Minecraft server. Please see the FAQ.')
       }
       throw new RakTimeout('Ping timed out')
     })
@@ -152,7 +152,7 @@ class RakJsClient extends EventEmitter {
       this.sendReliable = this.workerSendReliable
     } else {
       this.connect = this.plainConnect
-      this.close = reason => this.raknet.close(reason)
+      this.close = reason => this.raknet?.close(reason)
       this.sendReliable = this.plainSendReliable
     }
     this.pongCb = null
@@ -163,20 +163,19 @@ class RakJsClient extends EventEmitter {
 
     this.worker.on('message', (evt) => {
       switch (evt.type) {
-        case 'connected': {
+        case 'connected':
           this.onConnected()
           break
-        }
         case 'encapsulated': {
-          const [ecapsulated, address] = evt.args
-          this.onEncapsulated(ecapsulated, address.hash)
+          const [encapsulated, address] = evt.args
+          this.onEncapsulated(encapsulated, address.hash)
           break
         }
         case 'pong':
           this.pongCb?.(evt.args)
           break
         case 'disconnect':
-          this.onCloseConnection()
+          this.onCloseConnection(evt.reason)
           break
       }
     })
@@ -196,7 +195,7 @@ class RakJsClient extends EventEmitter {
   }
 
   workerSendReliable (buffer, immediate) {
-    this.worker.postMessage({ type: 'queueEncapsulated', packet: buffer, immediate })
+    this.worker?.postMessage({ type: 'queueEncapsulated', packet: buffer, immediate })
   }
 
   plainSendReliable (buffer, immediate) {
@@ -262,7 +261,6 @@ class RakJsServer extends EventEmitter {
   }
 
   close () {
-    // Allow some time for the final packets to come in/out
     setTimeout(() => {
       this.raknet.close()
     }, 40)
