@@ -22,8 +22,8 @@ const defaultOptions = {
   offline: false,
   // Milliseconds to wait before aborting connection attempt
   connectTimeout: 9000,
-  // Specifies the raknet implementation to use
-  raknetBackend: 'raknet-native',
+  // Prefer native RakNet when available, otherwise fall back to jsp-raknet.
+  raknetBackend: 'auto',
   // If using JS implementation of RakNet, should we use workers? (This only affects the client)
   useRaknetWorkers: true,
 

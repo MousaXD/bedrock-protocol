@@ -1,5 +1,3 @@
-const { Client } = require('./client')
-const { RakClient } = require('./rak')('raknet-native')
 const { sleep } = require('./datatypes/util')
 const assert = require('assert')
 const Options = require('./options')
@@ -9,6 +7,7 @@ const auth = require('./client/auth')
 /** @param {{ version?: number, host: string, port?: number, connectTimeout?: number, skipPing?: boolean }} options */
 function createClient (options) {
   assert(options)
+  const { Client } = require('./client')
   const client = new Client({ port: 19132, followPort: !options.realms, ...options, delayedInit: true })
 
   function onServerInfo () {
@@ -17,7 +16,7 @@ function createClient (options) {
       client.init()
     } else {
       ping(client.options).then(ad => {
-        const adVersion = ad.version?.split('.').slice(0, 3).join('.') // Only 3 version units
+        const adVersion = ad.version?.split('.').slice(0, 3).join('.')
         client.options.version = options.version ?? (Options.Versions[adVersion] ? adVersion : Options.CURRENT_VERSION)
 
         if (ad.portV4 && client.options.followPort) {
@@ -39,26 +38,22 @@ function createClient (options) {
 }
 
 function connect (client) {
-  // Actually connect
   client.connect()
 
-  // Echo network_stack_latency back so latency-tracking servers see the client as responsive (#643).
   client.on('network_stack_latency', (packet) => {
     if (packet.needs_response) {
       client.queue('network_stack_latency', { timestamp: packet.timestamp, needs_response: false })
     }
   })
 
-  client.once('resource_packs_info', (packet) => {
-    // As of 1.26.40 the status is a varint followed by the same status as a lowercase string.
-    // Older protocol versions have no such field and simply ignore it.
+  client.once('resource_packs_info', () => {
     client.write('resource_pack_client_response', {
       response_status: 'completed',
       response_status_name: 'resourcepackstackfinished',
       resourcepackids: []
     })
 
-    client.once('resource_pack_stack', (stack) => {
+    client.once('resource_pack_stack', () => {
       client.write('resource_pack_client_response', {
         response_status: 'completed',
         response_status_name: 'resourcepackstackfinished',
@@ -82,7 +77,6 @@ function connect (client) {
 
     client.once('spawn', () => {
       keepalive = setInterval(() => {
-        // Client fills out the request_time and the server does response_time in its reply.
         client.queue('tick_sync', { request_time: client.tick, response_time: 0n })
         client.tick += keepAliveIntervalBig
       }, 50 * keepAliveInterval)
@@ -99,11 +93,12 @@ function connect (client) {
   }
 }
 
-async function ping ({ host, port }) {
-  const con = new RakClient({ host, port })
+async function ping ({ host, port, raknetBackend = 'auto', connectTimeout = 1000 }) {
+  const { RakClient } = require('./rak')(raknetBackend)
+  const con = new RakClient({ host, port, useWorkers: false })
 
   try {
-    return advertisement.fromServerName(await con.ping())
+    return advertisement.fromServerName(await con.ping(connectTimeout))
   } finally {
     con.close()
   }
